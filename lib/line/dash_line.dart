@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 ///描述:虚线功能实现
 ///功能介绍:虚线功能实现
+  ///  CustomPaint(
+  ///         size: Size(MediaQuery.of(context).size.width,1.px),
+  ///         painter: DashLine(lineColor: const Color(0XFFDDDDDD),lineDashSpace: 2.px,lineDashWidth: 2.px,indent: 12.px,endIndent: 15.px),
+  ///       )
 ///创建者:翁益亨
 ///创建日期:2023/3/14 15:55
 class DashLine extends CustomPainter{
