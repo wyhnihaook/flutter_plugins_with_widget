@@ -22,6 +22,12 @@ class InputBoxView extends StatefulWidget {
 
   ///可缺省参数
 
+  //是否需要页面didUpdateWidget的时候同步默认填入参数，默认是不需要额外处理
+  final bool extraDeal;
+
+  //当前默认填充的内容
+  final String content;
+
   //背景颜色
   final Color backgroundColor;
 
@@ -71,10 +77,14 @@ class InputBoxView extends StatefulWidget {
 
   final Map modeDiffSize;//hint和content的尺寸差距
 
+  final bool readOnly;//是否只读
+
   const InputBoxView(this.title, this.hint,
       {Key? key,
       this.isNecessary = false,
+      this.extraDeal = false,
       this.isBold = false,
+        this.content = "",
         this.modeDiffSize=  const {'textSizeDiff': 0, 'marginSizeDiff': 0},
       this.backgroundColor = Colors.white,
       this.isHorizontalType = true,
@@ -94,6 +104,7 @@ class InputBoxView extends StatefulWidget {
       this.titleSize = 16,
       this.hintSize = 16,
       this.textSize = 16,
+      this.readOnly = false,
       this.lineHeight = 0.5})
       : super(key: key);
 
@@ -104,10 +115,12 @@ class InputBoxView extends StatefulWidget {
 class _InputBoxState extends State<InputBoxView> {
   //判断当前输入框是否获取到光标
   final _focusNode = FocusNode();
+  final _textFieldController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _textFieldController.text = widget.content;
 
     _focusNode.addListener(() {
       //变更聚焦状态之后，会进行回调
@@ -195,6 +208,18 @@ class _InputBoxState extends State<InputBoxView> {
     );
   }
 
+  //基本数据发生变化，这里只用关系默认显示的content即可。外部可以通过部分参数变化处理
+  @override
+  void didUpdateWidget(InputBoxView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if(widget.extraDeal){
+      if(_textFieldController.text!=widget.content){
+        _textFieldController.text = widget.content;
+      }
+    }
+
+  }
+
   ///返回当前输入框View
   _input() {
     return Padding(
@@ -203,6 +228,8 @@ class _InputBoxState extends State<InputBoxView> {
           left: widget.isHorizontalType ? 0 : widget.containerMargin[0],
           right: widget.containerMargin[0]),
       child: TextField(
+        readOnly:widget.readOnly,
+        controller: _textFieldController,
         textAlign: widget.inputGravityLeft ? TextAlign.start : TextAlign.end,
         focusNode: _focusNode,
         onChanged: widget.onTextChanged,

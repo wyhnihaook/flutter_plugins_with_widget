@@ -22,6 +22,7 @@ export 'input/input_box_timer_widget.dart';
 export 'input/input_box_widget.dart';
 export 'input/selection_box_widget.dart';
 export 'input/text_input_box_widget.dart';
+export 'input/selection_box_display_widget.dart';
 
 ///展开类模块
 export 'collapse/text/expanded_text.dart';
@@ -37,3 +38,5 @@ export 'dialog/smart_dialog/init_dialog.dart';
 export 'dialog/smart_dialog/config/enum_config.dart';
 export 'dialog/smart_dialog/widget/popwindow_helper.dart';
 
+///普通标签文本
+export 'wrap_view/rich_text_with_tag_view.dart';

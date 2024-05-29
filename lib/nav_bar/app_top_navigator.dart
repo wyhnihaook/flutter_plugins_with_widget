@@ -24,8 +24,8 @@ class TabBarNavigator extends StatefulWidget {
   //当前展示的tab标签内容
   final List<Widget> tabs;
 
-  //tab的padding属性设定
-  final EdgeInsets tabPadding;
+  //tab可以设置左右边距
+  final EdgeInsetsGeometry tabPadding;
 
   //当前容器中展示的页面
   final List<Widget> pages;
@@ -80,43 +80,67 @@ class TabBarNavigator extends StatefulWidget {
   //当前title列表获取,主要用来计算当前右侧阴影占位是否需要展示
   final List<String> titles;
 
+  //添加居于右侧可扩展的按钮（直接依附在tab上），使用时需要保证tab的内容绝对不会超过功能模块，否则不推荐使用
+  final Widget? extensionComponents;
+
+  //获取cTabBar的key，用于获取具体位置
+  final GlobalKey? cTabBarGlobalKey;
+
+  //处理分割线
+  final Widget? divider;
+
+  //分割线距离tabbar的距离（总高度）
+  final double dividerHeight;
+
+  //控制页面容器水平切换手势内容。默认是可以水平滚动，不用设置内容。通过设置const NeverScrollableScrollPhysics()禁止水平滑动
+  final ScrollPhysics? pageViewPhysics;
+
+  //默认不需要在setState刷新后重新同步一次头部tabs信息
+  final bool modifyTabs;
+
   const TabBarNavigator(
       {required this.tabs,
-      required this.pages,
-      this.tabPadding = EdgeInsets.zero,
-      this.topView = const [],
-      this.topViewHeight = 0,
-      this.middlePadding = kTabLabelMiddlePadding,
-      this.tabBackgroundColor = const Color(0XFFFFFFFF),
-      this.backgroundColor = const Color(0XFF00FF00),
-      this.initialPage = 0,
-      this.tabBarHeight = 46, //等同于tabs中的_kTabHeight，默认数据
-      this.isScrollable = true,
-      this.keepAlive = true,
-      this.switchTopTabListener,
-      this.indicatorSize = TabBarIndicatorSize.tab,
-      this.shadowColor = Colors.transparent,
-      this.unselectedLabelStyle = const TextStyle(
-        fontSize: 14,
-      ),
-      this.unselectedLabelColor = const Color(0XFF999999),
-      this.selectedLabelStyle = const TextStyle(
-        fontSize: 14,
-      ),
-      this.selectedLabelColor = const Color(0XFF333333),
-      this.indicator = const TabBarIndicator(
-        strokeCap: StrokeCap.round,
-        width: 24,
-      ), //取消下划线 BoxDecoration()传入即可
-      this.titles = const [],
-      Key? key})
+        required this.pages,
+        this.tabPadding = EdgeInsets.zero,
+        this.topView = const [],
+        this.topViewHeight = 0,
+        this.middlePadding = kTabLabelMiddlePadding,
+        this.tabBackgroundColor = const Color(0XFFFFFFFF),
+        this.backgroundColor = const Color(0XFF00FF00),
+        this.initialPage = 0,
+        this.tabBarHeight = 46, //等同于tabs中的_kTabHeight，默认数据
+        this.isScrollable = true,
+        this.keepAlive = true,
+        this.switchTopTabListener,
+        this.indicatorSize = TabBarIndicatorSize.tab,
+        this.shadowColor = Colors.transparent,
+        this.modifyTabs = false,
+        this.unselectedLabelStyle = const TextStyle(
+          fontSize: 14,
+        ),
+        this.unselectedLabelColor = const Color(0XFF999999),
+        this.selectedLabelStyle = const TextStyle(
+          fontSize: 14,
+        ),
+        this.selectedLabelColor = const Color(0XFF333333),
+        this.indicator = const TabBarIndicator(
+          strokeCap: StrokeCap.round,
+          width: 24,
+        ), //取消下划线 BoxDecoration()传入即可
+        this.titles = const [],
+        this.extensionComponents,
+        this.cTabBarGlobalKey,
+        this.divider,
+        this.dividerHeight = 0,
+        this.pageViewPhysics,
+        Key? key})
       : super(key: key);
 
   @override
-  State<TabBarNavigator> createState() => _TabBarNavigatorState();
+  State<TabBarNavigator> createState() => TabBarNavigatorState();
 }
 
-class _TabBarNavigatorState extends State<TabBarNavigator>
+class TabBarNavigatorState extends State<TabBarNavigator>
     with SingleTickerProviderStateMixin {
   //滑动Tab监听器
   TabController? _tabController;
@@ -172,20 +196,20 @@ class _TabBarNavigatorState extends State<TabBarNavigator>
     if (widget.keepAlive) {
       _pages = widget.pages
           .map((e) => PageKeepAliveView(
-                child: e,
-              ))
+        child: e,
+      ))
           .toList();
     }
 
-    //添加适配器
+    //添加适配器，适用于tab中纯文字，不会变化的情况。如果有图片信息，那么需要从变化中重新适配一次
     _tabs = widget.tabs
         .map((e) => Tab(
-              height: widget.tabBarHeight,
-              child: e,
-            ))
+      height: widget.tabBarHeight,
+      child: e,
+    ))
         .toList();
 
-    _tabController = TabController(length: widget.tabs.length, vsync: this);
+    _tabController = TabController(length: widget.tabs.length, initialIndex:widget.initialPage,vsync: this);
 
     _tabController!.addListener(() {
       //监听当前滑动页面操作，默认刚刚开始切换回调一次，然后切换成功回调一次
@@ -194,6 +218,34 @@ class _TabBarNavigatorState extends State<TabBarNavigator>
       if (_tabController!.index.toDouble() ==
           _tabController!.animation!.value) {}
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TabBarNavigator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    //通过字段标识是否需要刷新头部数据
+    if(widget.modifyTabs){
+      _tabs = widget.tabs
+          .map((e) => Tab(
+        height: widget.tabBarHeight,
+        child: e,
+      )).toList();
+
+      _pages = widget.pages;
+      //初始化的时候将当前page页面作为子组件
+      if (widget.keepAlive) {
+        _pages = widget.pages
+            .map((e) => PageKeepAliveView(
+          child: e,
+        ))
+            .toList();
+      }
+    }
+  }
+
+  //外部同步数据切换
+  void animTo(int pageIndex){
+    _pageController.jumpToPage(pageIndex);
   }
 
   @override
@@ -219,74 +271,94 @@ class _TabBarNavigatorState extends State<TabBarNavigator>
       appBar: _tabs.length==1?null:PreferredSize(
         //为了在最右侧适配阴影，包裹内容适配，高度为tab的高度+indicator的高度
         preferredSize: Size.fromHeight(
-            widget.tabBarHeight + tabBarIndicatorWeight + widget.topViewHeight),
-        child: ConstrainedBox(constraints: BoxConstraints(maxHeight:widget.tabBarHeight + tabBarIndicatorWeight + widget.topViewHeight),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...widget.topView,
-                CTabBar(
-                  padding: widget.tabPadding,
-                  unselectedLabelColor: widget.unselectedLabelColor,
-                  unselectedLabelStyle: widget.unselectedLabelStyle,
-                  labelColor: widget.selectedLabelColor,
-                  labelStyle: widget.selectedLabelStyle,
-                  indicatorSize: widget.indicatorSize,
-                  indicator: widget.indicator,
-                  controller: _tabController,
-                  isScrollable: widget.isScrollable,
-                  tabs: _tabs,
-                  middlePadding: widget.middlePadding,
-                  physics: CScrollPhysics(
-                    //监听隐藏和显示
-                      visibleRightPlaceHolderCallBack: (isVisible) {
-                        if (!_needOcclusion) {
-                          return;
-                        }
-                        // print("isVisible $isVisible");
-                        globalKey.currentState?.setVisibleStatus(
-                            moveBodyCheckLastIndex ? false : isVisible);
-                      }, overCallBack: (offset) {
-                    if (offset > 0) {
-                      //手势从左往右滑动，重置底部选择
-                      moveBodyCheckLastIndex = false;
-                    }
-                  }),
-                  onTap: (index) {
-                    _onJumpTo(index);
-                  },
-                )
-              ],
-            ),
-            Positioned(
-              right: 0,
-              child: IgnorePointer(
-                child: OffstageView(
-                  key: globalKey,
-                  isVisible: _needOcclusion,
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: GradientUtil.whiteLinearGradient(),
+            widget.tabBarHeight + tabBarIndicatorWeight + widget.topViewHeight + widget.dividerHeight),
+        child: ConstrainedBox(constraints: BoxConstraints(maxHeight:widget.tabBarHeight + tabBarIndicatorWeight + widget.topViewHeight + widget.dividerHeight),
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ...widget.topView,
+                  Theme(data: ThemeData(
+                    //处理点击的水波纹情况
+                    backgroundColor: Colors.transparent,
+                    ///点击的背景高亮颜色
+                    highlightColor: Colors.transparent,
+                    ///点击水波纹颜色
+                    splashColor: Colors.transparent,
+                  ), child: CTabBar(
+                    key: widget.cTabBarGlobalKey,
+                    padding: widget.tabPadding,
+                    unselectedLabelColor: widget.unselectedLabelColor,
+                    unselectedLabelStyle: widget.unselectedLabelStyle,
+                    labelColor: widget.selectedLabelColor,
+                    labelStyle: widget.selectedLabelStyle,
+                    indicatorSize: widget.indicatorSize,
+                    indicator: widget.indicator,
+                    controller: _tabController,
+                    isScrollable: widget.isScrollable,
+                    tabs: _tabs,
+                    middlePadding: widget.middlePadding,
+                    physics: CScrollPhysics(
+                      //监听隐藏和显示
+                        visibleRightPlaceHolderCallBack: (isVisible) {
+                          if (!_needOcclusion) {
+                            return;
+                          }
+                          // print("isVisible $isVisible");
+                          globalKey.currentState?.setVisibleStatus(
+                              moveBodyCheckLastIndex ? false : isVisible);
+                        }, overCallBack: (offset) {
+                      if (offset > 0) {
+                        //手势从左往右滑动，重置底部选择
+                        moveBodyCheckLastIndex = false;
+                      }
+                    }),
+                    onTap: (index) {
+                      onJumpTo(index);
+                    },
+                  ))
+                ],
+              ),
+              Positioned(
+                right: 0,
+                child: IgnorePointer(
+                  child: OffstageView(
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: GradientUtil.whiteLinearGradient(),
+                      ),
+                      width: widget.tabBarHeight + tabBarIndicatorWeight - 10,
+                      height: widget.tabBarHeight + tabBarIndicatorWeight,
                     ),
-                    width: widget.tabBarHeight + tabBarIndicatorWeight - 10,
-                    height: widget.tabBarHeight + tabBarIndicatorWeight,
+                    key: globalKey,
+                    isVisible: _needOcclusion,
+
                   ),
                 ),
               ),
-            )
-          ],
-        ),),
+              //右侧扩展内容
+              Positioned(
+                  right: 0,
+                  child: widget.extensionComponents ?? const SizedBox()),
+
+              //底部分割线
+              Positioned(
+                  left: 0,
+                  bottom: 0,
+                  child:widget.divider??const SizedBox()),
+            ],
+          ),),
       ),
       body: Container(
         color: widget.backgroundColor,
         child: PageView(
+          physics: widget.pageViewPhysics,
           controller: _pageController,
           children: _pages,
           onPageChanged: (index) {
             _tabController!.animateTo(index);
-            _onJumpTo(index, pageChange: true);
+            onJumpTo(index, pageChange: true);
           },
         ),
       ),
@@ -294,7 +366,7 @@ class _TabBarNavigatorState extends State<TabBarNavigator>
   }
 
   //当前切换tab进行角标以及page同步
-  _onJumpTo(int index, {pageChange = false}) {
+  onJumpTo(int index, {pageChange = false}) {
     if (index == currentIndex) {
       //相同的跳转数据
       return;
