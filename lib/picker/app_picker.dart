@@ -24,6 +24,9 @@ enum PickerAdapterType {
   area,//地区模式，暂无
 }
 
+//滚动停止后的回调
+typedef OnChangeListener = Function(String date);
+
 class PickerView extends StatefulWidget {
   ///必填参数
 
@@ -42,6 +45,8 @@ class PickerView extends StatefulWidget {
   final SubmitCallBack? submitCallBack;
 
   final CancelCallBack? cancelCallBack;
+
+  final OnChangeListener? onChangeListener;
 
   //是否需要选择器渐变,默认需要
   final bool needOcclusion;
@@ -108,6 +113,7 @@ class PickerView extends StatefulWidget {
       this.defaultPickerData = const [],
       this.submitCallBack,
       this.cancelCallBack,
+      this.onChangeListener,
       this.textStyle = const TextStyle(fontSize: 15, color: Color(0XFF323233)),
       this.backgroundColor = Colors.white,
       this.titleBarLeftContent = "取消",
@@ -386,6 +392,9 @@ class PickerSelectorViewState extends State<PickerView> {
           }
 
           setState(() {});
+
+          //滚动停止后的回调
+          widget.onChangeListener?.call("${switchLinkList[0]}-${switchLinkList[1]}-${switchLinkList[2]}");
         },
         children: index == 0
             ? firstList.map((e) => _textView(e)).toList()

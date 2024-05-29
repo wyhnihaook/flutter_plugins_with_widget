@@ -24,6 +24,9 @@ class TabBarNavigator extends StatefulWidget {
   //当前展示的tab标签内容
   final List<Widget> tabs;
 
+  //tab的padding属性设定
+  final EdgeInsets tabPadding;
+
   //当前容器中展示的页面
   final List<Widget> pages;
 
@@ -80,6 +83,7 @@ class TabBarNavigator extends StatefulWidget {
   const TabBarNavigator(
       {required this.tabs,
       required this.pages,
+      this.tabPadding = EdgeInsets.zero,
       this.topView = const [],
       this.topViewHeight = 0,
       this.middlePadding = kTabLabelMiddlePadding,
@@ -224,6 +228,7 @@ class _TabBarNavigatorState extends State<TabBarNavigator>
               children: [
                 ...widget.topView,
                 CTabBar(
+                  padding: widget.tabPadding,
                   unselectedLabelColor: widget.unselectedLabelColor,
                   unselectedLabelStyle: widget.unselectedLabelStyle,
                   labelColor: widget.selectedLabelColor,
